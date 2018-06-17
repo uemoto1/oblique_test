@@ -4,6 +4,9 @@ module fdtd1d1
   
   character(64) :: sysname
   
+  real(8), parameter :: c_speed = 137.0
+  real(8), parameter :: pi = 3.14159265
+  
   ! system size
   ! n(x|y|z)(1|2)_m: lower and upper end of macroscopic region
   ! m(x|y|z)(1|2)_m: ... with taking account of overlapped region
@@ -33,14 +36,12 @@ module fdtd1d1
   real(8) :: epdir(3)
   real(8) :: t_pulse
   real(8) :: omega
-  real(8) :: angle, theta
-  real(8) :: v_speed
+  
+  real(8) :: angle, theta, vspeed
   
   ! lorentz drude model
   real(8) :: omega_l, gamma_l, chi_l0
     
-  real(8), parameter :: c_speed = 137.0
-  real(8), parameter :: pi = 3.14159265
   
 contains
   
@@ -65,8 +66,7 @@ contains
     real(8) :: x, t, f_cur, f_old
     
     namelist/input/ &
-    & sysname, nx1_m, nx2_m, hx_m, nt, dt, ac_0, epdir, t_pulse, omega, &
-    & omega_l, gamma_l, chi_l0, angle
+    & sysname, nx1_m, nx2_m, hx_m, nt, dt, ac_0, epdir, t_pulse, omega, omega_l, gamma_l, chi_l0, angle
     
     sysname = "untitled"
     hx_m = 250; hy_m = 250; hz_m = 250;
@@ -220,26 +220,31 @@ contains
     implicit none
     integer :: ix_m, iy_m, iz_m
     real(8) :: elec(3), bmag(3)
+    real(8) :: e_ex_dt
     
-    
+
     e_em = 0d0
+    e_ex_dt = 0d0
     
     iy_m = ny1_m; iz_m = nz1_m
+!$omp parallel do default(shared) private(ix_m, elec, bmag) reduction(+:e_em,e_ex_dt)
     do ix_m = nx1_m, nx2_m
       elec = - ( &
-      & + ac_new_m(:, ix_m, iy_m, iz_m) &
-      & - ac_old_m(:, ix_m, iy_m, iz_m) &
-      & ) * (0.5 / dt)
+        & + ac_new_m(:, ix_m, iy_m, iz_m) &
+        & - ac_old_m(:, ix_m, iy_m, iz_m) &
+        & ) * (0.5 / dt)
       bmag(1) = 0d0
       bmag(2) = - (0.5 * c_speed / hx_m) * ( &
-      & ac_cur_m(3, ix_m+1, iy_m, iz_m) -  ac_cur_m(3, ix_m-1, iy_m, iz_m) &
-      & )
+        & ac_cur_m(3, ix_m+1, iy_m, iz_m) -  ac_cur_m(3, ix_m-1, iy_m, iz_m) &
+        & )
       bmag(3) = + (0.5 * c_speed / hx_m) * ( &
-      & ac_cur_m(2, ix_m+1, iy_m, iz_m) -  ac_cur_m(2, ix_m-1, iy_m, iz_m) &
-      & )
+        & ac_cur_m(2, ix_m+1, iy_m, iz_m) -  ac_cur_m(2, ix_m-1, iy_m, iz_m) &
+        & )
       e_em = e_em + sum(elec**2 + bmag**2) * (hx_m * hy_m * hz_m / (8 * pi))
-      e_ex = e_ex - sum(elec * jmat_cur_m(:, ix_m, iy_m, iz_m)) * (hx_m * hy_m * hz_m) * dt
+      e_ex_dt = e_ex_dt - sum(elec * jmat_cur_m(:, ix_m, iy_m, iz_m)) * (hx_m * hy_m * hz_m) * dt
     end do
+!$omp end parallel do
+    e_ex = e_ex + e_ex_dt
     
   end subroutine calc_elemag
   
