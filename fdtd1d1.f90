@@ -27,6 +27,9 @@ module fdtd1d1
   real(8), allocatable :: jmat_new_m(:, :, :, :)
   real(8), allocatable :: jmat_cur_m(:, :, :, :)
   real(8), allocatable :: jmat_old_m(:, :, :, :)
+  real(8), allocatable :: pmat_new_m(:, :, :, :)
+  real(8), allocatable :: pmat_cur_m(:, :, :, :)
+  real(8), allocatable :: pmat_old_m(:, :, :, :)
   ! real(8), allocatable :: pmat_cur_m(:, :, :, :)
   
   real(8) :: ac_0
@@ -36,10 +39,14 @@ module fdtd1d1
   
   ! lorentz drude model
   real(8) :: omega_l, gamma_l, chi_l0
-    
+  
   real(8), parameter :: c_speed = 137.0
   real(8), parameter :: pi = 3.14159265
   
+  ! oblique incident paramter
+  real(8) :: angle, theta
+  real(8) :: s_speed
+  real(8) :: one_over_v_speed
 contains
   
   function sin2cos(t) result(f)
@@ -63,7 +70,9 @@ contains
     real(8) :: x, t, f_cur, f_old
     
     namelist/input/ &
-    & sysname, nx1_m, nx2_m, hx_m, nt, dt, ac_0, epdir, t_pulse, omega, omega_l, gamma_l, chi_l0
+    & sysname, hx_m, nt, dt, omega, ac_0, t_pulse, epdir, &
+    & nx1_m, nx2_m, ny1_m, ny2_m, nz1_m, nz2_m, & 
+    & omega_l, gamma_l, chi_l0, angle
     
     sysname = "untitled"
     hx_m = 250; hy_m = 250; hz_m = 250;
@@ -82,9 +91,27 @@ contains
     omega_l = 1d0
     gamma_l = 0.2
     chi_l0 = 1d0
-    
+    angle = 0d0
     
     read (*, nml=input)
+    write(*, '("# dump sysname:", 1(1x,a))') sysname
+    write(*, '("# dump hx_m:", 1(1x,es23.15e3))') hx_m
+    write(*, '("# dump nt:", 1(1x,i6))') nt
+    write(*, '("# dump dt:", 1(1x,es23.15e3))') dt
+    write(*, '("# dump omega:", 1(1x,es23.15e3))') omega
+    write(*, '("# dump ac_0:", 1(1x,es23.15e3))') ac_0
+    write(*, '("# dump t_pulse:", 1(1x,es23.15e3))') t_pulse
+    write(*, '("# dump epdir:(1:3)", 3(1x,es23.15e3))') epdir(1:3)
+    write(*, '("# dump nx1_m:", 1(1x,i6))') nx1_m
+    write(*, '("# dump nx2_m:", 1(1x,i6))') nx2_m
+    write(*, '("# dump ny1_m:", 1(1x,i6))') ny1_m
+    write(*, '("# dump ny2_m:", 1(1x,i6))') ny2_m
+    write(*, '("# dump nz1_m:", 1(1x,i6))') nz1_m
+    write(*, '("# dump nz2_m:", 1(1x,i6))') nz2_m
+    write(*, '("# dump omega_l:", 1(1x,es23.15e3))') omega_l
+    write(*, '("# dump gamma_l:", 1(1x,es23.15e3))') gamma_l
+    write(*, '("# dump chi_l0:", 1(1x,es23.15e3))') chi_l0
+    write(*, '("# dump angle:", 1(1x,es23.15e3))') angle
     
     mx1_m = nx1_m - 1; mx2_m = nx2_m + 1
     my1_m = ny1_m - 1; my2_m = ny2_m + 1
@@ -96,15 +123,23 @@ contains
     allocate(jmat_old_m(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
     allocate(jmat_cur_m(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
     allocate(jmat_new_m(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
-    ! allocate(pmat_cur_m(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
+    allocate(pmat_old_m(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
+    allocate(pmat_cur_m(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
+    allocate(pmat_new_m(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
         
     ac_new_m = 0d0; ac_cur_m = 0d0; ac_old_m = 0d0
     jmat_new_m = 0d0; jmat_cur_m = 0d0; jmat_old_m = 0d0
     !pmat_cur_m = 0d0
+    iter = 0
+    e_ex = 0d0; e_em = 0d0
+    
+    theta = angle * (pi / 180d0)
+    one_over_v_speed = sin(theta) / c_speed
+    s_speed =  c_speed / cos(theta)
     
     do ix_m = nx1_m, nx2_m
       x = ix_m * hx_m
-      t = - x / c_speed
+      t = - x / s_speed
       f_cur = sin2cos(t)
       f_old = sin2cos(t - dt)
       
@@ -116,8 +151,7 @@ contains
       ac_old_m(2, ix_m, :, :) = epdir(2) * ac_0 * f_old
       ac_old_m(3, ix_m, :, :) = epdir(3) * ac_0 * f_old
     end do
-    iter = 0
-    e_ex = 0d0; e_em = 0d0
+    
     
     return
   end subroutine init_fdtd
@@ -125,10 +159,16 @@ contains
   subroutine dt_evolve_ac()
     implicit none
     integer :: ix_m, iy_m, iz_m
-    real(8) :: rlap(3)
+    real(8) :: rlap(3), grad_pmx, dt_acy
+    real(8) :: temp_integ
+    
+    temp_integ = 0d0
     
     iy_m = ny1_m; iz_m = nz1_m
-!$omp parallel do default(shared) private(ix_m, rlap)
+
+    ! Part2 Oblique Mode
+    ! [Without Charge Density Routine]
+    ac_new_m = 0d0
     do ix_m = nx1_m, nx2_m
       rlap = ( &
       & + ac_cur_m(:, ix_m+1, iy_m, iz_m) &
@@ -141,8 +181,36 @@ contains
       & + (4 * pi * dt**2) * (- jmat_cur_m(:, ix_m, iy_m, iz_m)) &
       & + (c_speed**2 * dt**2) * rlap(:) &
       & )
+      
+      grad_pmx = ( &
+      & + pmat_cur_m(1, ix_m+1, iy_m, iz_m) &
+      & - pmat_cur_m(1, ix_m-1, iy_m, iz_m) &
+      & ) * (0.5d0 / HX_m)
+      grad_pmx = 0d0
+      
+      ! y-component
+      ac_new_m(2, ix_m, iy_m, iz_m) = &
+      & + 2 * ac_cur_m(2, ix_m, iy_m, iz_m) & 
+      & - ac_old_m(2, ix_m, iy_m, iz_m) &
+      & + (dt ** 2) * ( &
+      &   - (4 * pi) * jmat_cur_m(2, ix_m, iy_m, iz_m) &
+      &   + (s_speed ** 2) * rlap(2) &
+      &   - (4 * pi * s_speed ** 2 * one_over_v_speed) * grad_pmx &
+      & )
+      
+      ! dt_acy = ( &
+      ! & + ac_new_m(2, ix_m, iy_m, iz_m) &
+      ! & - ac_old_m(2, ix_m, iy_m, iz_m) &
+      ! & ) / (2 * dt)
+      ! 
+      ! temp_integ = temp_integ + ( & 
+      ! & + dt_acy * one_over_v_speed 
+      ! & + 4 * pi * one_over_v_speed * jmat_cur_m(2, ix_m, iy_m, iz_m)
+      ! & )
+      
+      
     end do
-  !$omp end parallel do
+
   
   
     ! ac_old_m(:, :, :, :) = ac_cur_m(:, :, :, :)
@@ -165,8 +233,11 @@ contains
     f4 = chi_l0 * omega_l ** 2
     
     iy_m = ny1_m; iz_m = nz1_m
-    !$omp parallel do default(shared) private(ix_m)
+
     do ix_m = 1, nx2_m
+      pmat_new_m(:, ix_m, iy_m, iz_m) = pmat_cur_m(:, ix_m, iy_m, iz_m) &
+      & + jmat_cur_m(:, ix_m, iy_m, iz_m) * dt
+      
       jmat_new_m(:, ix_m, iy_m, iz_m) = f1 * ( &
       & - f2 * jmat_old_m(:, ix_m, iy_m, iz_m) &
       & + f3 * jmat_cur_m(:, ix_m, iy_m, iz_m) &
@@ -175,7 +246,6 @@ contains
       & + f4 * ac_new_m(:, ix_m, iy_m, iz_m) &
       & ) 
     end do
-    !$omp end parallel do
     
     return
   end subroutine current
@@ -185,6 +255,7 @@ contains
     implicit none
     ac_old_m = ac_cur_m; ac_cur_m = ac_new_m; ac_new_m = 0d0
     jmat_old_m = jmat_cur_m; jmat_cur_m = jmat_new_m; jmat_new_m = 0d0
+    pmat_old_m = pmat_cur_m; pmat_cur_m = pmat_new_m; pmat_new_m = 0d0
     return
   end subroutine proceed_vars
 
@@ -195,15 +266,15 @@ contains
     
     write(file_ac_out, '(a, "_ac_", i6.6, ".data")') trim(sysname), iter
     write(*, '("# write_ac:", a)') trim(file_ac_out)
-    write(*, '("# e_em:", e23.15e3)') e_em
-    write(*, '("# e_ex:", e23.15e3)') e_ex
-    write(*, '("# total:", e23.15e3)') e_ex + e_em
+    write(*, '("# e_em:", es23.15e3)') e_em
+    write(*, '("# e_ex:", es23.15e3)') e_ex
+    write(*, '("# total:", es23.15e3)') e_ex + e_em
     
     open(unit=100, file=trim(file_ac_out))
     
     iy_m = ny1_m; iz_m = nz1_m
     do ix_m = nx1_m, nx2_m
-      write(100, '(i6,3(1x,e23.15e3))') ix_m, ac_cur_m(:, ix_m, iy_m, iz_m)
+      write(100, '(i6,3(1x,es23.15e3))') ix_m, ac_cur_m(:, ix_m, iy_m, iz_m)
     end do
 
     close(100)
@@ -222,7 +293,7 @@ contains
     e_ex_dt = 0d0
     
     iy_m = ny1_m; iz_m = nz1_m
-!$omp parallel do default(shared) private(ix_m, elec, bmag) reduction(+:e_em,e_ex_dt)
+
     do ix_m = nx1_m, nx2_m
       elec = - ( &
       & + ac_new_m(:, ix_m, iy_m, iz_m) &
@@ -238,7 +309,7 @@ contains
       e_em = e_em + sum(elec**2 + bmag**2) * (hx_m * hy_m * hz_m / (8 * pi))
       e_ex_dt = e_ex_dt - sum(elec * jmat_cur_m(:, ix_m, iy_m, iz_m)) * (hx_m * hy_m * hz_m) * dt
     end do
-!$omp end parallel do
+
     e_ex = e_ex + e_ex_dt
     
   end subroutine calc_elemag

@@ -15,6 +15,15 @@ fdtd1d1.o: fdtd1d1.f90
 %.o: %.f90
 	$(FC) -o $@ -c $< $(FFLAGS) $(INCLUDES)
 
+.PHONY: all, cleean
+	
+all: $(TARGET)
+
+clean:
+	rm *.o $(TARGET)
+
+
+ 
 
 
 
