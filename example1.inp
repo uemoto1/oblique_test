@@ -1,14 +1,14 @@
 &input
   sysname = 'example1'
-  nx1_m = -1000
+  nx1_m = -2000
   nx2_m = +500
   dt = 0.05
-  nt = 10000
+  nt = 20000
   hx_m = 250
   epdir = 0, 1, 0
   gamma_l = 10.00d0
   omega_l = 10.00d0
-  chi_l0 = 0d0
+  chi_l0 = 1d0
   t_pulse = 800d0
-  angle = 0d0
+  angle = 74.81d0
 /

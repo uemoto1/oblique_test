@@ -159,7 +159,7 @@ contains
   subroutine dt_evolve_ac()
     implicit none
     integer :: ix_m, iy_m, iz_m
-    real(8) :: rlap(3), grad_pmx, dt_acy
+    real(8) :: rlap(3), grad_pmx, dx_acy_new, dx_acy_old
     real(8) :: temp_integ
     
     temp_integ = 0d0
@@ -175,18 +175,11 @@ contains
       & + ac_cur_m(:, ix_m-1, iy_m, iz_m) &
       & - 2 * ac_cur_m(:, ix_m, iy_m, iz_m) &
       & ) / hx_m ** 2
-      ac_new_m(:, ix_m, iy_m, iz_m) = ( &
-      & + 2 * ac_cur_m(:, ix_m, iy_m, iz_m) & 
-      & - ac_old_m(:, ix_m, iy_m, iz_m) &
-      & + (4 * pi * dt**2) * (- jmat_cur_m(:, ix_m, iy_m, iz_m)) &
-      & + (c_speed**2 * dt**2) * rlap(:) &
-      & )
-      
+
       grad_pmx = ( &
       & + pmat_cur_m(1, ix_m+1, iy_m, iz_m) &
       & - pmat_cur_m(1, ix_m-1, iy_m, iz_m) &
       & ) * (0.5d0 / HX_m)
-      grad_pmx = 0d0
       
       ! y-component
       ac_new_m(2, ix_m, iy_m, iz_m) = &
@@ -196,6 +189,17 @@ contains
       &   - (4 * pi) * jmat_cur_m(2, ix_m, iy_m, iz_m) &
       &   + (s_speed ** 2) * rlap(2) &
       &   - (4 * pi * s_speed ** 2 * one_over_v_speed) * grad_pmx &
+      & )
+      
+      dx_acy_new = (ac_new_m(2, ix_m + 1, iy_m, iz_m) - ac_new_m(2, ix_m - 1, iy_m, iz_m)) / (2 * HX_m)
+      dx_acy_old = (ac_old_m(2, ix_m + 1, iy_m, iz_m) - ac_old_m(2, ix_m - 1, iy_m, iz_m)) / (2 * HX_m)
+      
+      ac_new_m(1, ix_m, iy_m, iz_m) =&
+      & + 2 * ac_cur_m(1, ix_m, iy_m, iz_m) & 
+      & - ac_old_m(1, ix_m, iy_m, iz_m) &
+      & - (4 * pi / cos(theta) ** 2) * jmat_cur_m(1, ix_m, iy_m, iz_m) &
+      & + (c_speed * sin(theta) / cos(theta) ** 2) * ( &
+      &   (dx_acy_new - dx_acy_old) / (2 * dt) &
       & )
       
       ! dt_acy = ( &
