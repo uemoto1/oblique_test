@@ -1,5 +1,6 @@
 program main
   use fdtd1d1
+  use inputoutput
   implicit none
   integer :: i
   
