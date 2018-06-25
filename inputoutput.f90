@@ -22,6 +22,11 @@ module inputoutput
   real(8) :: gamma_l
   real(8) :: chi_l0
   logical :: out_ac_bin
+  logical :: out_ac_out
+  integer :: ac_bin_step
+  integer :: ac_out_step
+  real(8) :: angle
+  logical :: inp_bc
 
 contains
 
@@ -50,7 +55,12 @@ contains
     & omega_l, &
     & gamma_l, &
     & chi_l0, &
-    & out_ac_bin
+    & out_ac_bin, &
+    & out_ac_out, &
+    & ac_bin_step, &
+    & ac_out_step, &
+    & angle, &
+    & inp_bc
 
     sysname="untitled"
     nx1_m=-500
@@ -72,6 +82,11 @@ contains
     gamma_l=0d0
     chi_l0=1d0
     out_ac_bin=.false.
+    out_ac_out=.true.
+    ac_bin_step=10
+    ac_out_step=1000
+    angle=0
+    inp_bc=.true.
 
     read (*, nml=input)
 
@@ -104,6 +119,11 @@ contains
     print '("# gamma_l", 1(1X, es23.15e3))', gamma_l
     print '("# chi_l0", 1(1X, es23.15e3))', chi_l0
     print '("# out_ac_bin", 1(1X, l1))', out_ac_bin
+    print '("# out_ac_out", 1(1X, l1))', out_ac_out
+    print '("# ac_bin_step", 1(1X, i6))', ac_bin_step
+    print '("# ac_out_step", 1(1X, i6))', ac_out_step
+    print '("# angle", 1(1X, es23.15e3))', angle
+    print '("# inp_bc", 1(1X, l1))', inp_bc
     print '(a)', "##########################################"
     return
   end subroutine var_dump

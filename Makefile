@@ -4,13 +4,11 @@ INCLUDES=
 FFLAGS=-O3
 TARGET=test01
 
-$(TARGET): inputoutput.o fdtd1d1.o main.o 
+$(TARGET): inputoutput.o fdtd1d1.o
 	$(FC) $^ -o $@ $(FFLAGS) $(LIBS) 
 
 inputoutput.f90: inputoutput.py
 	python inputoutput.py
-
-main.o: main.f90 fdtd1d1.mod
 
 inputoutput.o: inputoutput.f90
 inputoutput.mod: inputoutput.f90 inputoutput.o

@@ -2,11 +2,18 @@
   sysname = 'example1'
   nx1_m = -1000
   nx2_m = +500
+  ny1_m = 1
+  ny2_m = 16
   dt = 0.05
-  nt = 80000
+  nt = 8000
   hx_m = 250
   epdir = 0, 0, 1
   gamma_l = 10.00d0
   omega_l = 10.00d0
+  chi_l0 = 1.0
   t_pulse = 800d0
+  out_ac_bin = .true.
+  out_ac_out = .false.
+  ac_bin_step = 1
+  inp_bc = .false.
 /

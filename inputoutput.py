@@ -23,6 +23,11 @@ input_vars = [
     ['real(8)', 'gamma_l', '', '0d0', 1],
     ['real(8)', 'chi_l0', '', '1d0', 1],
     ['logical', "out_ac_bin", '', '.false.', 1],
+    ['logical', "out_ac_out", '', '.true.', 1],
+    ['integer', "ac_bin_step", '', '10', 1],
+    ['integer', "ac_out_step", '', '1000', 1],
+    ['real(8)', "angle", '', '0', 1],
+    ['logical', "inp_bc", '', '.true.', 1],
 ]
 
 

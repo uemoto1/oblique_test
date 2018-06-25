@@ -27,8 +27,6 @@ module fdtd1d1
   real(8), allocatable :: jm_old_ms(:, :, :, :)
   ! real(8), allocatable :: pmat_cur_m(:, :, :, :)
   
-  ! temporal region
-  real(8), allocatable :: data(:, :, :, :, :)
     
   real(8), parameter :: c_light = 137.0
   real(8), parameter :: pi = 3.14159265
@@ -75,13 +73,11 @@ contains
     allocate(jm_ms(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
     allocate(jm_new_ms(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
     ! allocate(pmat_cur_m(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
-    
-    allocate(data(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m, 0:nt))
-        
+            
     ac_new_ms = 0d0; ac_ms = 0d0; ac_old_ms = 0d0
     jm_new_ms = 0d0; jm_ms = 0d0; jm_old_ms = 0d0
     !pmat_cur_m = 0d0
-    
+    iter = 0
     do ix_m = nx1_m, nx2_m
       x = ix_m * hx_m
       t = - x / c_light
@@ -96,7 +92,6 @@ contains
       ac_ms(2, ix_m, :, :) = epdir(2) * ac_0 * f_old
       ac_ms(3, ix_m, :, :) = epdir(3) * ac_0 * f_old
     end do
-    iter = 0
     e_ex = 0d0; e_em = 0d0
     return
   end subroutine init_fdtd
@@ -178,6 +173,12 @@ contains
         Ac_new_ms(1:3, mx2_m, iy_m, iz_m) = Ac_new_ms(1:3, nx1_m, iy_m, iz_m)
       end do
     end do
+    
+    if (inp_bc) then
+      read(201) Ac_new_ms(1:3, nx1_m:nx2_m, ny1_m, nz1_m)
+      read(202) Ac_new_ms(1:3, nx1_m:nx2_m, ny2_m, nz1_m)
+    end if
+    
     return    
   end subroutine 
     
@@ -242,6 +243,7 @@ contains
   end subroutine write_ac
   
   
+    
   
   subroutine calc_elemag()
     implicit none
@@ -278,24 +280,70 @@ contains
   
   
   subroutine run_fdtd()
-    implicit none
+    implicit none    
+    character(64) :: file_ac_bin
+    character(64) :: file_bc_bin
+    
+    if (out_ac_bin) then
+      write(file_ac_bin, '(a, "_ac.bin")') trim(sysname)
+      print '(4x,"# export: ", a)', trim(file_ac_bin)
+      open(unit=200, file=trim(file_ac_bin), form='unformatted', access='stream', status='replace')
+    end if
+    
+    if (inp_bc) then
+      write(file_bc_bin, '(a, "_bc_btm.bin")') trim(sysname)
+      print '(4x,"# import: ", a)', trim(file_bc_bin)
+      open(unit=201, file=trim(file_bc_bin), form='unformatted', access='stream', status='old')
+      write(file_bc_bin, '(a, "_bc_top.bin")') trim(sysname)
+      print '(4x,"# import: ", a)', trim(file_bc_bin)
+      open(unit=202, file=trim(file_bc_bin), form='unformatted', access='stream', status='old')
+    end if
+      
+    !Ac_ms(:,:,:,:) = data(:,:,:,:,-1)
+    !Ac_new_ms(:,:,:,:) = data(:,:,:,:,0)
     do iter = 0, nt
       call proceed_vars()
       call dt_evolve_ac()
       call calc_elemag()
       call current()
       
-      if (mod(iter, 1000) == 0) then
+      if (mod(iter, 100) == 0) then
         print '("# iter=", i6)', iter
         print '(4x, "# E_ex=", es23.15e3)', e_ex
         print '(4x, "# E_em=", es23.15e3)', e_em
         print '(4x, "# E_tot=", es23.15e3)', e_ex + e_em
+      end if
+      
+      if (out_ac_out .and. (mod(iter, ac_out_step) == 0)) then
         call write_ac()
       end if
+      
+      if (out_ac_bin .and. (mod(iter, ac_bin_step) == 0)) then
+        write(200) ac_ms(1:3, nx1_m:nx2_m, ny1_m:ny2_m, nz1_m:nz2_m)
+      end if
+      
     end do
+    
+    if (out_ac_bin) then
+      close(200)
+    end if
   end subroutine run_fdtd
   
   
   
 end module fdtd1d1
-    
+
+
+
+
+program main
+  use fdtd1d1
+  use inputoutput
+  implicit none
+  integer :: i
+  
+  call init_fdtd()
+  
+  call run_fdtd()
+  stop "bye"
+end program main
