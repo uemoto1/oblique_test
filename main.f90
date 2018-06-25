@@ -6,13 +6,6 @@ program main
   
   call init_fdtd()
   
-  call write_ac()
-  
-  do i = 1, (nt / 1000)
-      call update(1000)
-      call write_ac()
-  end do
-
-  
+  call run_fdtd()
   stop "bye"
 end program main

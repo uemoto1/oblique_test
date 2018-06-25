@@ -10,14 +10,14 @@ $(TARGET): inputoutput.o fdtd1d1.o main.o
 inputoutput.f90: inputoutput.py
 	python inputoutput.py
 
+main.o: main.f90 fdtd1d1.mod
+
 inputoutput.o: inputoutput.f90
 inputoutput.mod: inputoutput.f90 inputoutput.o
 
 fdtd1d1.o: fdtd1d1.f90 inputoutput.mod
 fdtd1d1.mod: fdtd1d1.f90 fdtd1d1.o
-	
 
-main.o: main.f90 fdtd1d1.mod
 	
 
 

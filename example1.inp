@@ -1,6 +1,6 @@
 &input
   sysname = 'example1'
-  nx1_m = -500
+  nx1_m = -1000
   nx2_m = +500
   dt = 0.05
   nt = 80000
