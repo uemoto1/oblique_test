@@ -95,36 +95,35 @@ contains
 
 
 
-  subroutine var_dump()
+  subroutine var_dump(iunit)
     implicit none
+    integer, intent(in) :: iunit
     
-    print '(a)', "################ VAR_DUMP ################"
-    print '("# sysname", 1(1X, a))', sysname
-    print '("# nx1_m", 1(1X, i6))', nx1_m
-    print '("# ny1_m", 1(1X, i6))', ny1_m
-    print '("# nz1_m", 1(1X, i6))', nz1_m
-    print '("# nx2_m", 1(1X, i6))', nx2_m
-    print '("# ny2_m", 1(1X, i6))', ny2_m
-    print '("# nz2_m", 1(1X, i6))', nz2_m
-    print '("# nt", 1(1X, i6))', nt
-    print '("# hx_m", 1(1X, es23.15e3))', hx_m
-    print '("# hy_m", 1(1X, es23.15e3))', hy_m
-    print '("# hz_m", 1(1X, es23.15e3))', hz_m
-    print '("# dt", 1(1X, es23.15e3))', dt
-    print '("# ac_0", 1(1X, es23.15e3))', ac_0
-    print '("# epdir", 3(1X, es23.15e3))', epdir
-    print '("# t_pulse", 1(1X, es23.15e3))', t_pulse
-    print '("# omega", 1(1X, es23.15e3))', omega
-    print '("# omega_l", 1(1X, es23.15e3))', omega_l
-    print '("# gamma_l", 1(1X, es23.15e3))', gamma_l
-    print '("# chi_l0", 1(1X, es23.15e3))', chi_l0
-    print '("# out_ac_bin", 1(1X, l1))', out_ac_bin
-    print '("# out_ac_out", 1(1X, l1))', out_ac_out
-    print '("# ac_bin_step", 1(1X, i6))', ac_bin_step
-    print '("# ac_out_step", 1(1X, i6))', ac_out_step
-    print '("# angle", 1(1X, es23.15e3))', angle
-    print '("# inp_bc", 1(1X, l1))', inp_bc
-    print '(a)', "##########################################"
+    write(iunit, '("#",4x,"sysname=",1(1X, a))') sysname
+    write(iunit, '("#",4x,"nx1_m=",1(1X, i6))') nx1_m
+    write(iunit, '("#",4x,"ny1_m=",1(1X, i6))') ny1_m
+    write(iunit, '("#",4x,"nz1_m=",1(1X, i6))') nz1_m
+    write(iunit, '("#",4x,"nx2_m=",1(1X, i6))') nx2_m
+    write(iunit, '("#",4x,"ny2_m=",1(1X, i6))') ny2_m
+    write(iunit, '("#",4x,"nz2_m=",1(1X, i6))') nz2_m
+    write(iunit, '("#",4x,"nt=",1(1X, i6))') nt
+    write(iunit, '("#",4x,"hx_m=",1(1X, es23.15e3))') hx_m
+    write(iunit, '("#",4x,"hy_m=",1(1X, es23.15e3))') hy_m
+    write(iunit, '("#",4x,"hz_m=",1(1X, es23.15e3))') hz_m
+    write(iunit, '("#",4x,"dt=",1(1X, es23.15e3))') dt
+    write(iunit, '("#",4x,"ac_0=",1(1X, es23.15e3))') ac_0
+    write(iunit, '("#",4x,"epdir=",3(1X, es23.15e3))') epdir
+    write(iunit, '("#",4x,"t_pulse=",1(1X, es23.15e3))') t_pulse
+    write(iunit, '("#",4x,"omega=",1(1X, es23.15e3))') omega
+    write(iunit, '("#",4x,"omega_l=",1(1X, es23.15e3))') omega_l
+    write(iunit, '("#",4x,"gamma_l=",1(1X, es23.15e3))') gamma_l
+    write(iunit, '("#",4x,"chi_l0=",1(1X, es23.15e3))') chi_l0
+    write(iunit, '("#",4x,"out_ac_bin=",1(1X, l1))') out_ac_bin
+    write(iunit, '("#",4x,"out_ac_out=",1(1X, l1))') out_ac_out
+    write(iunit, '("#",4x,"ac_bin_step=",1(1X, i6))') ac_bin_step
+    write(iunit, '("#",4x,"ac_out_step=",1(1X, i6))') ac_out_step
+    write(iunit, '("#",4x,"angle=",1(1X, es23.15e3))') angle
+    write(iunit, '("#",4x,"inp_bc=",1(1X, l1))') inp_bc
     return
   end subroutine var_dump
 

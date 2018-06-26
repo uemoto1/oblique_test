@@ -77,12 +77,11 @@ contains
 
 
 
-  subroutine var_dump()
+  subroutine var_dump(iunit)
     implicit none
+    integer, intent(in) :: iunit
     
-    print '(a)', "################ VAR_DUMP ################"
 {VAR_DUMP}
-    print '(a)', "##########################################"
     return
   end subroutine var_dump
 
@@ -117,7 +116,7 @@ for vtype, vname, vdim, vdefval, vlen in input_vars:
     init_vars_list += ['{VNAME}={VDEFVAL}'.format(
         VNAME=vname, VDEFVAL=vdefval
     )]
-    var_dump_list += ["""print '("# {VNAME}", {VLEN}(1X, {VFMT}))', {VNAME}""".format(
+    var_dump_list += ["""write(iunit, '("#",4x,"{VNAME}=",{VLEN}(1X, {VFMT}))') {VNAME}""".format(
         VNAME=vname, VLEN=vlen, VFMT=vfmt[vtype]
     )
     ]

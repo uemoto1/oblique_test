@@ -31,6 +31,8 @@ module fdtd1d1
   real(8), parameter :: c_light = 137.0
   real(8), parameter :: pi = 3.14159265
   
+  real(8) ::  theta
+  
 contains
   
   
@@ -53,11 +55,10 @@ contains
   subroutine init_fdtd()
     implicit none    
     integer :: ix_m, iy_m, iz_m
-    real(8) :: x, t, f_cur, f_old
-    
-    call read_input()
-    call var_dump()
-    
+    real(8) :: x, y, t, f_cur, f_old
+    character(64) :: file_ac_bin
+    character(64) :: file_bc_bin
+
     mx1_m = nx1_m - 1; mx2_m = nx2_m + 1
     my1_m = ny1_m - 1; my2_m = ny2_m + 1
     mz1_m = nz1_m - 1; mz2_m = nz2_m + 1
@@ -73,26 +74,47 @@ contains
     allocate(jm_ms(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
     allocate(jm_new_ms(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
     ! allocate(pmat_cur_m(1:3, mx1_m:mx2_m, my1_m:my2_m, mz1_m:mz2_m))
+    theta = angle * pi / 180d0 
             
     ac_new_ms = 0d0; ac_ms = 0d0; ac_old_ms = 0d0
     jm_new_ms = 0d0; jm_ms = 0d0; jm_old_ms = 0d0
     !pmat_cur_m = 0d0
     iter = 0
-    do ix_m = nx1_m, nx2_m
-      x = ix_m * hx_m
-      t = - x / c_light
-      f_cur = sin2cos(t)
-      f_old = sin2cos(t - dt)
-      
-      ac_new_ms(1, ix_m, :, :) = epdir(1) * ac_0 * f_cur
-      ac_new_ms(2, ix_m, :, :) = epdir(2) * ac_0 * f_cur
-      ac_new_ms(3, ix_m, :, :) = epdir(3) * ac_0 * f_cur
-      
-      ac_ms(1, ix_m, :, :) = epdir(1) * ac_0 * f_old
-      ac_ms(2, ix_m, :, :) = epdir(2) * ac_0 * f_old
-      ac_ms(3, ix_m, :, :) = epdir(3) * ac_0 * f_old
+    do iy_m = my1_m, my2_m
+      y = iy_m * hy_m
+      do ix_m = mx1_m, mx2_m
+        x = ix_m * hx_m
+        t = - (x * cos(theta) + y * sin(theta)) / c_light
+        f_cur = sin2cos(t)
+        f_old = sin2cos(t - dt)
+        
+        ac_new_ms(1, ix_m, iy_m, :) = epdir(1) * ac_0 * f_cur
+        ac_new_ms(2, ix_m, iy_m, :) = epdir(2) * ac_0 * f_cur
+        ac_new_ms(3, ix_m, iy_m, :) = epdir(3) * ac_0 * f_cur
+        
+        ac_ms(1, ix_m, iy_m, :) = epdir(1) * ac_0 * f_old
+        ac_ms(2, ix_m, iy_m, :) = epdir(2) * ac_0 * f_old
+        ac_ms(3, ix_m, iy_m, :) = epdir(3) * ac_0 * f_old
+      end do
     end do
     e_ex = 0d0; e_em = 0d0
+    
+    
+    if (out_ac_bin) then
+      write(file_ac_bin, '(a, "_ac.bin")') trim(sysname)
+      print '(4x,"# export: ", a)', trim(file_ac_bin)
+      open(unit=200, file=trim(file_ac_bin), form='unformatted', access='stream', status='replace')
+    end if
+    
+    if (inp_bc) then
+      write(file_bc_bin, '(a, "_bc_btm.bin")') trim(sysname)
+      print '(4x,"# import: ", a)', trim(file_bc_bin)
+      open(unit=201, file=trim(file_bc_bin), form='unformatted', access='stream', status='old')
+      write(file_bc_bin, '(a, "_bc_top.bin")') trim(sysname)
+      print '(4x,"# import: ", a)', trim(file_bc_bin)
+      open(unit=202, file=trim(file_bc_bin), form='unformatted', access='stream', status='old')
+    end if
+    
     return
   end subroutine init_fdtd
   
@@ -281,23 +303,7 @@ contains
   
   subroutine run_fdtd()
     implicit none    
-    character(64) :: file_ac_bin
-    character(64) :: file_bc_bin
-    
-    if (out_ac_bin) then
-      write(file_ac_bin, '(a, "_ac.bin")') trim(sysname)
-      print '(4x,"# export: ", a)', trim(file_ac_bin)
-      open(unit=200, file=trim(file_ac_bin), form='unformatted', access='stream', status='replace')
-    end if
-    
-    if (inp_bc) then
-      write(file_bc_bin, '(a, "_bc_btm.bin")') trim(sysname)
-      print '(4x,"# import: ", a)', trim(file_bc_bin)
-      open(unit=201, file=trim(file_bc_bin), form='unformatted', access='stream', status='old')
-      write(file_bc_bin, '(a, "_bc_top.bin")') trim(sysname)
-      print '(4x,"# import: ", a)', trim(file_bc_bin)
-      open(unit=202, file=trim(file_bc_bin), form='unformatted', access='stream', status='old')
-    end if
+
       
     !Ac_ms(:,:,:,:) = data(:,:,:,:,-1)
     !Ac_new_ms(:,:,:,:) = data(:,:,:,:,0)
@@ -342,8 +348,11 @@ program main
   implicit none
   integer :: i
   
+  call read_input()
+  open(unit=101, file='variables.log', status='replace')
+  call var_dump(101)
+  close(101)
   call init_fdtd()
-  
   call run_fdtd()
-  stop "bye"
+  stop 'Calculation is successfully finished.'
 end program main
