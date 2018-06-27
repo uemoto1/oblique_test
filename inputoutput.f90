@@ -23,7 +23,6 @@ module inputoutput
   real(8) :: chi_l0
   logical :: out_ac_bin
   logical :: out_ac_out
-  integer :: ac_bin_step
   integer :: ac_out_step
   real(8) :: angle
   logical :: inp_bc
@@ -57,7 +56,6 @@ contains
     & chi_l0, &
     & out_ac_bin, &
     & out_ac_out, &
-    & ac_bin_step, &
     & ac_out_step, &
     & angle, &
     & inp_bc
@@ -83,7 +81,6 @@ contains
     chi_l0=1d0
     out_ac_bin=.false.
     out_ac_out=.true.
-    ac_bin_step=10
     ac_out_step=1000
     angle=0
     inp_bc=.true.
@@ -120,7 +117,6 @@ contains
     write(iunit, '("#",4x,"chi_l0=",1(1X, es23.15e3))') chi_l0
     write(iunit, '("#",4x,"out_ac_bin=",1(1X, l1))') out_ac_bin
     write(iunit, '("#",4x,"out_ac_out=",1(1X, l1))') out_ac_out
-    write(iunit, '("#",4x,"ac_bin_step=",1(1X, i6))') ac_bin_step
     write(iunit, '("#",4x,"ac_out_step=",1(1X, i6))') ac_out_step
     write(iunit, '("#",4x,"angle=",1(1X, es23.15e3))') angle
     write(iunit, '("#",4x,"inp_bc=",1(1X, l1))') inp_bc

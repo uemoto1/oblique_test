@@ -197,9 +197,13 @@ contains
     end do
     
     if (inp_bc) then
-      read(201) Ac_new_ms(1:3, nx1_m:nx2_m, ny1_m, nz1_m)
-      read(202) Ac_new_ms(1:3, nx1_m:nx2_m, ny2_m, nz1_m)
+      read(201) Ac_new_ms(1:3, nx1_m:nx2_m, my1_m, nz1_m)
+      read(202) Ac_new_ms(1:3, nx1_m:nx2_m, my2_m, nz1_m)
+    else
+      Ac_new_ms(1:3, nx1_m:nx2_m, my1_m, nz1_m) = 0d0
+      Ac_new_ms(1:3, nx1_m:nx2_m, my2_m, nz1_m) = 0d0
     end if
+    
     
     return    
   end subroutine 
@@ -324,12 +328,12 @@ contains
         call write_ac()
       end if
       
-      if (out_ac_bin .and. (mod(iter, ac_bin_step) == 0)) then
+      if (out_ac_bin) then
         write(200) ac_ms(1:3, nx1_m:nx2_m, ny1_m:ny2_m, nz1_m:nz2_m)
       end if
       
     end do
-    
+        
     if (out_ac_bin) then
       close(200)
     end if
