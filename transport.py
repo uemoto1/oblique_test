@@ -159,3 +159,19 @@ def export_boundary(sysname, fd, iy1, iy2, sigma):
 fd= FDTDData("%s.inp" % sys.argv[1])
 fd.var_dump()
 export_boundary(sys.argv[2], fd, 8, 24, 4)
+fd = FDTDData("example2.inp")
+target = range(0, 6000, 1000)
+fig, axis = plt.subplots(len(target), sharex=True)
+for a, it in zip(axis, target):
+    a.imshow(fd.df.read_field(it)[:,:,2], aspect=1, clim=[-1,1], cmap="jet", origin="lower")
+    a.plot([1000]*2, [0, 32], "--k")
+plt.xlim(800,1050)
+plt.xlabel("Penetration Depth")
+plt.savefig(sys.argv[3])
+print(sys.argv[3])
+
+
+
+
+
+
