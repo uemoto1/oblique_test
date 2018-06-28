@@ -5,7 +5,7 @@ from numpy import sin, cos, exp, pi, e, sqrt
 
 class DataFrame:
 
-    def __init__(self, title, directory=os.cwd):
+    def __init__(self, title, directory=os.curdir):
         self.file_info = os.path.join(directory, '%s.info' % title)
         with open(self.file_info, "r") as fh_info:
             tmp_mx1, tmp_mx2, tmp_dx = fh_info.readline().split()
@@ -41,19 +41,25 @@ class DataFrame:
             if (it < self.mt1 or self.mt2 < it):
                 raise IndexError("time-index out of range")
         self.fh_bin.seek(
-            8 * 3 * (ix + self.mx * (iy + self.my * (iz + self.mz * it)))
+            8 * 3 * (
+                (ix - self.mx1) + self.mx * (
+                (iy - self.my1) + self.my * (
+                (iz - self.mz1) + self.mz * (
+                (it - self.mt1)
+            ))))
         )
 
     def read_field_on_xyz(self, it, check_range=True):
-        self._seek_position(0, 0, 0, it, check_range)
+        self._seek_position(self.mx1, self.my1, self.mz1, it, check_range)
         temp = np.fromfile(
             self.fh_bin, dtype=np.float64,
-            count=3 * self.mx * self.my + self.mz
+            count=3 * self.mx * self.my * self.mz
         )
+        print(3 ,self.mx, self.my, self.mz)
         return temp.reshape([self.mz, self.my, self.mx, 3]).T
 
     def read_field_on_xy(self, iz, it, check_range=True):
-        self._seek_position(0, 0, iz, it, check_range)
+        self._seek_position(self.mx1, self.my1, iz, it, check_range)
         temp = np.fromfile(
             self.fh_bin, dtype=np.float64,
             count=3 * self.mx * self.my
@@ -61,7 +67,7 @@ class DataFrame:
         return temp.reshape([self.my, self.mx, 3]).T
 
     def read_field_on_x(self, iy, iz, it, check_range=True):
-        self._seek_position(0, iy, iz, it, check_range)
+        self._seek_position(self.mx1, iy, iz, it, check_range)
         temp = np.fromfile(
             self.fh_bin, dtype=np.float64,
             count=3 * self.mx
