@@ -33,6 +33,10 @@ module fdtd1d1
   
   real(8) ::  theta
   
+  integer, parameter :: fh_ac = 101
+  integer, parameter :: fh_ac_init = 102
+  integer, parameter :: fh_bc = 103
+  
 contains
   
   
@@ -56,8 +60,9 @@ contains
     implicit none    
     integer :: ix_m, iy_m, iz_m
     real(8) :: x, y, t, f_cur, f_old
-    character(64) :: file_ac_bin
-    character(64) :: file_bc_bin
+    character(64) :: file_ac
+    character(64) :: file_ac_init
+    character(64) :: file_bc
 
     mx1_m = nx1_m - 1; mx2_m = nx2_m + 1
     my1_m = ny1_m - 1; my2_m = ny2_m + 1
@@ -80,43 +85,80 @@ contains
     jm_new_ms = 0d0; jm_ms = 0d0; jm_old_ms = 0d0
     !pmat_cur_m = 0d0
     iter = 0
-    do iy_m = my1_m, my2_m
-      y = iy_m * hy_m
-      do ix_m = mx1_m, mx2_m
-        x = ix_m * hx_m
-        t = - (x * cos(theta) + y * sin(theta)) / c_light
-        f_cur = sin2cos(t)
-        f_old = sin2cos(t - dt)
-        
-        ac_new_ms(1, ix_m, iy_m, :) = epdir(1) * ac_0 * f_cur
-        ac_new_ms(2, ix_m, iy_m, :) = epdir(2) * ac_0 * f_cur
-        ac_new_ms(3, ix_m, iy_m, :) = epdir(3) * ac_0 * f_cur
-        
-        ac_ms(1, ix_m, iy_m, :) = epdir(1) * ac_0 * f_old
-        ac_ms(2, ix_m, iy_m, :) = epdir(2) * ac_0 * f_old
-        ac_ms(3, ix_m, iy_m, :) = epdir(3) * ac_0 * f_old
-      end do
-    end do
     e_ex = 0d0; e_em = 0d0
     
+
     
-    if (out_ac_bin) then
-      write(file_ac_bin, '(a, "_ac.bin")') trim(sysname)
-      print '(4x,"# export: ", a)', trim(file_ac_bin)
-      open(unit=200, file=trim(file_ac_bin), form='unformatted', access='stream', status='replace')
+    if (inp_ac_init_bin) then
+      write(file_ac_init, '(a, "_ac_init.bin")') trim(sysname)
+      print '(4x, a, a)', '# Read:', trim(file_ac_init)
+      open(unit=fh_ac_init, file=trim(file_ac_init), &
+      & form='unformatted', access='stream', status='old')
+      read(fh_ac_init) ac_ms(1:3, mx1_m:mx2_m, my1_m:my2_m, nz1_m)
+      read(fh_ac_init) ac_new_ms(1:3, mx1_m:mx2_m, my1_m:my2_m, nz1_m)
+      close(fh_ac_init)
+    else
+      print '(a)', "# Calculate: initial field"
+      do iy_m = my1_m, my2_m
+        y = iy_m * hy_m
+        do ix_m = mx1_m, mx2_m
+          x = ix_m * hx_m
+          t = - (x * cos(theta) + y * sin(theta)) / c_light
+          f_cur = sin2cos(t)
+          f_old = sin2cos(t - dt)
+          
+          ac_new_ms(1, ix_m, iy_m, :) = epdir(1) * ac_0 * f_cur
+          ac_new_ms(2, ix_m, iy_m, :) = epdir(2) * ac_0 * f_cur
+          ac_new_ms(3, ix_m, iy_m, :) = epdir(3) * ac_0 * f_cur
+          
+          ac_ms(1, ix_m, iy_m, :) = epdir(1) * ac_0 * f_old
+          ac_ms(2, ix_m, iy_m, :) = epdir(2) * ac_0 * f_old
+          ac_ms(3, ix_m, iy_m, :) = epdir(3) * ac_0 * f_old
+        end do
+      end do
     end if
     
-    if (inp_bc) then
-      write(file_bc_bin, '(a, "_bc_btm.bin")') trim(sysname)
-      print '(4x,"# import: ", a)', trim(file_bc_bin)
-      open(unit=201, file=trim(file_bc_bin), form='unformatted', access='stream', status='old')
-      write(file_bc_bin, '(a, "_bc_top.bin")') trim(sysname)
-      print '(4x,"# import: ", a)', trim(file_bc_bin)
-      open(unit=202, file=trim(file_bc_bin), form='unformatted', access='stream', status='old')
+    if (out_ac_bin) then
+      write(file_ac, '(a, "_ac.info")') trim(sysname)
+      print '(4x, a, a)', '# Write:', trim(file_ac)
+      open(unit=fh_ac, file=trim(file_ac), status='replace')
+      write(fh_ac, '(i6, 1x, i6, 1x, es23.15e3)') mx1_m, mx2_m, hx_m
+      write(fh_ac, '(i6, 1x, i6, 1x, es23.15e3)') my1_m, my2_m, hy_m
+      write(fh_ac, '(i6, 1x, i6, 1x, es23.15e3)') 1, 1, 0d0
+      write(fh_ac, '(i6, 1x, i6, 1x, es23.15e3)') 0, nt, dt
+      close(fh_ac)
+      
+      write(file_ac, '(a, "_ac.bin")') trim(sysname)
+      print '(4x, a, a)', '# Write:', trim(file_ac)
+      open(unit=fh_ac, file=trim(file_ac), &
+      & form='unformatted', access='stream', status='replace')
+    end if
+    
+    if (inp_bc_bin) then
+      write(file_bc, '(a, "_bc.bin")') trim(sysname)
+      print '(4x, a, a)', '# Write:', trim(file_bc)
+      open(unit=fh_bc, file=trim(file_bc), &
+      & form='unformatted', access='stream', status='old')
     end if
     
     return
   end subroutine init_fdtd
+  
+  
+  subroutine finalize_fdtd()
+    implicit none
+    
+    if (out_ac_bin) then
+      close(fh_ac)
+    end if
+    
+    if (inp_bc_bin) then
+      close(fh_bc)
+    end if
+    
+    return
+  end subroutine finalize_fdtd
+    
   
   
   
@@ -130,47 +172,47 @@ contains
         do ix_m = nx1_m, nx2_m
           ! Calculate Rot Rot A
           rr(1) = - (rinv_dy**2) * Ac_ms(1, ix_m+0, iy_m-1, iz_m+0) &
-                & - (rinv_dz**2) * Ac_ms(1, ix_m+0, iy_m+0, iz_m-1) &
-                & + (2d0*(rinv_dy**2 + rinv_dz**2)) * Ac_ms(1, ix_m+0, iy_m+0, iz_m+0) &
-                & - (rinv_dz**2) * Ac_ms(1, ix_m+0, iy_m+0, iz_m+1) &
-                & - (rinv_dy**2) * Ac_ms(1, ix_m+0, iy_m+1, iz_m+0) &
-                & + (rinv_dx*rinv_dy*0.25d0) * Ac_ms(2, ix_m-1, iy_m-1, iz_m+0) &
-                & - (rinv_dx*rinv_dy*0.25d0) * Ac_ms(2, ix_m-1, iy_m+1, iz_m+0) &
-                & - (rinv_dx*rinv_dy*0.25d0) * Ac_ms(2, ix_m+1, iy_m-1, iz_m+0) &
-                & + (rinv_dx*rinv_dy*0.25d0) * Ac_ms(2, ix_m+1, iy_m+1, iz_m+0) &
-                & + (rinv_dx*rinv_dz*0.25d0) * Ac_ms(3, ix_m-1, iy_m+0, iz_m-1) &
-                & - (rinv_dx*rinv_dz*0.25d0) * Ac_ms(3, ix_m-1, iy_m+0, iz_m+1) &
-                & - (rinv_dx*rinv_dz*0.25d0) * Ac_ms(3, ix_m+1, iy_m+0, iz_m-1) &
-                & + (rinv_dx*rinv_dz*0.25d0) * Ac_ms(3, ix_m+1, iy_m+0, iz_m+1)
+          &       - (rinv_dz**2) * Ac_ms(1, ix_m+0, iy_m+0, iz_m-1) &
+          &       + (2d0*(rinv_dy**2 + rinv_dz**2)) * Ac_ms(1, ix_m+0, iy_m+0, iz_m+0) &
+          &       - (rinv_dz**2) * Ac_ms(1, ix_m+0, iy_m+0, iz_m+1) &
+          &       - (rinv_dy**2) * Ac_ms(1, ix_m+0, iy_m+1, iz_m+0) &
+          &       + (rinv_dx*rinv_dy*0.25d0) * Ac_ms(2, ix_m-1, iy_m-1, iz_m+0) &
+          &       - (rinv_dx*rinv_dy*0.25d0) * Ac_ms(2, ix_m-1, iy_m+1, iz_m+0) &
+          &       - (rinv_dx*rinv_dy*0.25d0) * Ac_ms(2, ix_m+1, iy_m-1, iz_m+0) &
+          &       + (rinv_dx*rinv_dy*0.25d0) * Ac_ms(2, ix_m+1, iy_m+1, iz_m+0) &
+          &       + (rinv_dx*rinv_dz*0.25d0) * Ac_ms(3, ix_m-1, iy_m+0, iz_m-1) &
+          &       - (rinv_dx*rinv_dz*0.25d0) * Ac_ms(3, ix_m-1, iy_m+0, iz_m+1) &
+          &       - (rinv_dx*rinv_dz*0.25d0) * Ac_ms(3, ix_m+1, iy_m+0, iz_m-1) &
+          &       + (rinv_dx*rinv_dz*0.25d0) * Ac_ms(3, ix_m+1, iy_m+0, iz_m+1)
           rr(2) = + (rinv_dx*rinv_dy*0.25d0) * Ac_ms(1, ix_m-1, iy_m-1, iz_m+0) &
-                & - (rinv_dx*rinv_dy*0.25d0) * Ac_ms(1, ix_m-1, iy_m+1, iz_m+0) &
-                & - (rinv_dx*rinv_dy*0.25d0) * Ac_ms(1, ix_m+1, iy_m-1, iz_m+0) &
-                & + (rinv_dx*rinv_dy*0.25d0) * Ac_ms(1, ix_m+1, iy_m+1, iz_m+0) &
-                & - (rinv_dx**2) * Ac_ms(2, ix_m-1, iy_m+0, iz_m+0) &
-                & - (rinv_dz**2) * Ac_ms(2, ix_m+0, iy_m+0, iz_m-1) &
-                & + (2d0*(rinv_dx**2 + rinv_dz**2)) * Ac_ms(2, ix_m+0, iy_m+0, iz_m+0) &
-                & - (rinv_dz**2) * Ac_ms(2, ix_m+0, iy_m+0, iz_m+1) &
-                & - (rinv_dx**2) * Ac_ms(2, ix_m+1, iy_m+0, iz_m+0) &
-                & + (rinv_dy*rinv_dz*0.25d0) * Ac_ms(3, ix_m+0, iy_m-1, iz_m-1) &
-                & - (rinv_dy*rinv_dz*0.25d0) * Ac_ms(3, ix_m+0, iy_m-1, iz_m+1) &
-                & - (rinv_dy*rinv_dz*0.25d0) * Ac_ms(3, ix_m+0, iy_m+1, iz_m-1) &
-                & + (rinv_dy*rinv_dz*0.25d0) * Ac_ms(3, ix_m+0, iy_m+1, iz_m+1)
+          &       - (rinv_dx*rinv_dy*0.25d0) * Ac_ms(1, ix_m-1, iy_m+1, iz_m+0) &
+          &       - (rinv_dx*rinv_dy*0.25d0) * Ac_ms(1, ix_m+1, iy_m-1, iz_m+0) &
+          &       + (rinv_dx*rinv_dy*0.25d0) * Ac_ms(1, ix_m+1, iy_m+1, iz_m+0) &
+          &       - (rinv_dx**2) * Ac_ms(2, ix_m-1, iy_m+0, iz_m+0) &
+          &       - (rinv_dz**2) * Ac_ms(2, ix_m+0, iy_m+0, iz_m-1) &
+          &       + (2d0*(rinv_dx**2 + rinv_dz**2)) * Ac_ms(2, ix_m+0, iy_m+0, iz_m+0) &
+          &       - (rinv_dz**2) * Ac_ms(2, ix_m+0, iy_m+0, iz_m+1) &
+          &       - (rinv_dx**2) * Ac_ms(2, ix_m+1, iy_m+0, iz_m+0) &
+          &       + (rinv_dy*rinv_dz*0.25d0) * Ac_ms(3, ix_m+0, iy_m-1, iz_m-1) &
+          &       - (rinv_dy*rinv_dz*0.25d0) * Ac_ms(3, ix_m+0, iy_m-1, iz_m+1) &
+          &       - (rinv_dy*rinv_dz*0.25d0) * Ac_ms(3, ix_m+0, iy_m+1, iz_m-1) &
+          &       + (rinv_dy*rinv_dz*0.25d0) * Ac_ms(3, ix_m+0, iy_m+1, iz_m+1)
           rr(3) = + (rinv_dx*rinv_dz*0.25d0) * Ac_ms(1, ix_m-1, iy_m+0, iz_m-1) &
-                & - (rinv_dx*rinv_dz*0.25d0) * Ac_ms(1, ix_m-1, iy_m+0, iz_m+1) &
-                & - (rinv_dx*rinv_dz*0.25d0) * Ac_ms(1, ix_m+1, iy_m+0, iz_m-1) &
-                & + (rinv_dx*rinv_dz*0.25d0) * Ac_ms(1, ix_m+1, iy_m+0, iz_m+1) &
-                & + (rinv_dy*rinv_dz*0.25d0) * Ac_ms(2, ix_m+0, iy_m-1, iz_m-1) &
-                & - (rinv_dy*rinv_dz*0.25d0) * Ac_ms(2, ix_m+0, iy_m-1, iz_m+1) &
-                & - (rinv_dy*rinv_dz*0.25d0) * Ac_ms(2, ix_m+0, iy_m+1, iz_m-1) &
-                & + (rinv_dy*rinv_dz*0.25d0) * Ac_ms(2, ix_m+0, iy_m+1, iz_m+1) &
-                & - (rinv_dx**2) * Ac_ms(3, ix_m-1, iy_m+0, iz_m+0) &
-                & - (rinv_dy**2) * Ac_ms(3, ix_m+0, iy_m-1, iz_m+0) &
-                & + (2d0*(rinv_dx**2 + rinv_dy**2)) * Ac_ms(3, ix_m+0, iy_m+0, iz_m+0) &
-                & - (rinv_dy**2) * Ac_ms(3, ix_m+0, iy_m+1, iz_m+0) &
-                & - (rinv_dx**2) * Ac_ms(3, ix_m+1, iy_m+0, iz_m+0)
+          &       - (rinv_dx*rinv_dz*0.25d0) * Ac_ms(1, ix_m-1, iy_m+0, iz_m+1) &
+          &       - (rinv_dx*rinv_dz*0.25d0) * Ac_ms(1, ix_m+1, iy_m+0, iz_m-1) &
+          &       + (rinv_dx*rinv_dz*0.25d0) * Ac_ms(1, ix_m+1, iy_m+0, iz_m+1) &
+          &       + (rinv_dy*rinv_dz*0.25d0) * Ac_ms(2, ix_m+0, iy_m-1, iz_m-1) &
+          &       - (rinv_dy*rinv_dz*0.25d0) * Ac_ms(2, ix_m+0, iy_m-1, iz_m+1) &
+          &       - (rinv_dy*rinv_dz*0.25d0) * Ac_ms(2, ix_m+0, iy_m+1, iz_m-1) &
+          &       + (rinv_dy*rinv_dz*0.25d0) * Ac_ms(2, ix_m+0, iy_m+1, iz_m+1) &
+          &       - (rinv_dx**2) * Ac_ms(3, ix_m-1, iy_m+0, iz_m+0) &
+          &       - (rinv_dy**2) * Ac_ms(3, ix_m+0, iy_m-1, iz_m+0) &
+          &       + (2d0*(rinv_dx**2 + rinv_dy**2)) * Ac_ms(3, ix_m+0, iy_m+0, iz_m+0) &
+          &       - (rinv_dy**2) * Ac_ms(3, ix_m+0, iy_m+1, iz_m+0) &
+          &       - (rinv_dx**2) * Ac_ms(3, ix_m+1, iy_m+0, iz_m+0)
           Ac_new_ms(:,ix_m, iy_m, iz_m) = &
-                & + (2 * Ac_ms(:,ix_m, iy_m, iz_m) - Ac_old_ms(:,ix_m, iy_m, iz_m) &
-                & - Jm_ms(:,ix_m, iy_m, iz_m) * 4.0*pi*(dt**2) - rr(:)*(c_light*dt)**2 )
+          &       + (2 * Ac_ms(:,ix_m, iy_m, iz_m) - Ac_old_ms(:,ix_m, iy_m, iz_m) &
+          &       - Jm_ms(:,ix_m, iy_m, iz_m) * 4.0*pi*(dt**2) - rr(:)*(c_light*dt)**2 )
         end do
       end do
     end do
@@ -188,6 +230,13 @@ contains
         Ac_new_ms(1:3, ix_m, my2_m, iz_m) = Ac_new_ms(1:3, ix_m, ny1_m, iz_m) 
       end do
     end do
+    if (inp_bc_bin) then
+      read(fh_bc) Ac_new_ms(1:3, mx1_m:mx2_m, my1_m, nz1_m)
+      read(fh_bc) Ac_new_ms(1:3, mx1_m:mx2_m, my2_m, nz1_m)
+    else
+      Ac_new_ms(1:3, mx1_m:mx2_m, my1_m, :) = 0d0 
+      Ac_new_ms(1:3, mx1_m:mx2_m, my2_m, :) = 0d0
+    end if
     
     do iy_m = my1_m, my2_m
       do iz_m = mz1_m, mz2_m
@@ -195,15 +244,6 @@ contains
         Ac_new_ms(1:3, mx2_m, iy_m, iz_m) = Ac_new_ms(1:3, nx1_m, iy_m, iz_m)
       end do
     end do
-    
-    if (inp_bc) then
-      read(201) Ac_new_ms(1:3, nx1_m:nx2_m, my1_m, nz1_m)
-      read(202) Ac_new_ms(1:3, nx1_m:nx2_m, my2_m, nz1_m)
-    else
-      Ac_new_ms(1:3, nx1_m:nx2_m, my1_m, nz1_m) = 0d0
-      Ac_new_ms(1:3, nx1_m:nx2_m, my2_m, nz1_m) = 0d0
-    end if
-    
     
     return    
   end subroutine 
@@ -324,12 +364,12 @@ contains
         print '(4x, "# E_tot=", es23.15e3)', e_ex + e_em
       end if
       
-      if (out_ac_out .and. (mod(iter, ac_out_step) == 0)) then
+      if (out_ac_out .and. mod(iter, ac_out_step) == 0) then
         call write_ac()
       end if
       
       if (out_ac_bin) then
-        write(200) ac_ms(1:3, nx1_m:nx2_m, ny1_m:ny2_m, nz1_m:nz2_m)
+        write(fh_ac) ac_ms(1:3, mx1_m:mx2_m, my1_m:my2_m, nz1_m)
       end if
       
     end do
@@ -353,9 +393,10 @@ program main
   integer :: i
   
   call read_input()
-  open(unit=101, file='variables.log', status='replace')
-  call var_dump(101)
-  close(101)
+  open(unit=999, file='variables.log', status='replace')
+  call var_dump(999)
+  close(999)
+  
   call init_fdtd()
   call run_fdtd()
   stop 'Calculation is successfully finished.'

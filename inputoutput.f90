@@ -25,7 +25,8 @@ module inputoutput
   logical :: out_ac_out
   integer :: ac_out_step
   real(8) :: angle
-  logical :: inp_bc
+  logical :: inp_ac_init_bin
+  logical :: inp_bc_bin
 
 contains
 
@@ -58,7 +59,8 @@ contains
     & out_ac_out, &
     & ac_out_step, &
     & angle, &
-    & inp_bc
+    & inp_ac_init_bin, &
+    & inp_bc_bin
 
     sysname="untitled"
     nx1_m=-500
@@ -83,7 +85,8 @@ contains
     out_ac_out=.true.
     ac_out_step=1000
     angle=0
-    inp_bc=.true.
+    inp_ac_init_bin=.false.
+    inp_bc_bin=.false.
 
     read (*, nml=input)
 
@@ -119,7 +122,8 @@ contains
     write(iunit, '("#",4x,"out_ac_out=",1(1X, l1))') out_ac_out
     write(iunit, '("#",4x,"ac_out_step=",1(1X, i6))') ac_out_step
     write(iunit, '("#",4x,"angle=",1(1X, es23.15e3))') angle
-    write(iunit, '("#",4x,"inp_bc=",1(1X, l1))') inp_bc
+    write(iunit, '("#",4x,"inp_ac_init_bin=",1(1X, l1))') inp_ac_init_bin
+    write(iunit, '("#",4x,"inp_bc_bin=",1(1X, l1))') inp_bc_bin
     return
   end subroutine var_dump
 

@@ -7,8 +7,7 @@ import dataframe
 
 c_light = 137.036
 
-
-class ObliqueData:
+class ObliqueImporter:
 
     def __init__(self, title, angle=0.0):
         self.df = dataframe.DataFrame(title)
@@ -48,35 +47,34 @@ class ObliqueData:
             fs += self.predict_field_on_x(iy, iz, it)
         return fs * (1.0 / (jy2 - jy1))
 
-    def predict_bc(self, title, jylim=None, directory=os.cwd):
-        if jylim is None:
-            jy1 = int(self.fd.my1 * 0.75 + self.fd.my2 * 0.25)
-            jy2 = int(self.fd.my1 * 0.25 + self.fd.my2 * 0.75)
-        else:
-            jy1, jy2 = jylim
-        # Export .info file:
-        file_info = os.path.join(directory, '%s.info' % title)
-        with open(file_info, 'w') as fh_info:
-            sys.stderr.write('# Export file=%s\n' % fh_info.name)
-            fh_info.write('%d %d %e' % (self.fd.mx1, self.fd.mx2, self.fd.dx))
-            fh_info.write('%d %d %e' % (1, 2, 0.0))
-            fh_info.write('%d %d %e' % (1, 1, 0.0))
-            fh_info.write('%d %d %e' % (1, self.fd.mt2 + 1, self.fd.dt))
-        # Export .bin file:
-        file_bin = os.path.join(directory, '%s.bin' % title)
-        with open(file_bin, 'w') as fh_bin:
-            iz = int((self.fd.mz1 + self.fd.mz2) / 2)
-            sys.stderr.write('# Export file=%s\n' % fh_bin.name)
-            for it in range(1, self.fd.mt2 + 1 + 1):
-                f1 = self.predict_field_on_x2(self.fd.my1, iz, it, jy1, jy2)
-                f2 = self.predict_field_on_x2(self.fd.my2, iz, it, jy1, jy2)
-                f1.tofile(fh_bin)
-                f2.tofile(fh_bin)
-                if it % 1000 == 0:
-                    sys.stderr.write('# Generated it=%d\n' % it)
-
     def __enter__(self):
         return self
 
     def __exit__(self):
         return self.close()
+
+
+def predict_bc(ob, title, nt, dt, directory=os.cwd):
+    # Default jy-smearing range
+    jy1 = int(ob.fd.my1 * 0.75 + ob.fd.my2 * 0.25)
+    jy2 = int(ob.fd.my1 * 0.25 + ob.fd.my2 * 0.75)
+    # Export .info file:
+    file_info = os.path.join(directory, '%s.info' % title)
+    with open(file_info, 'w') as fh_info:
+        sys.stderr.write('# Export file=%s\n' % fh_info.name)
+        fh_info.write('%d %d %e\n' % (ob.fd.mx1, ob.fd.mx2, ob.fd.dx))
+        fh_info.write('%d %d %e\n' % (1, 2, 0.0))
+        fh_info.write('%d %d %e\n' % (1, 1, 0.0))
+        fh_info.write('%d %d %e\n' % (1, nt + 1, dt))
+    # Export .bin file:
+    file_bin = os.path.join(directory, '%s.bin' % title)
+    with open(file_bin, 'w') as fh_bin:
+        iz = int((ob.fd.mz1 + ob.fd.mz2) / 2)
+        sys.stderr.write('# Export file=%s\n' % fh_bin.name)
+        for it in range(1, ob.fd.mt2 + 1 + 1):
+            f1 = ob.predict_field_on_x2(ob.fd.my1, iz, it, jy1, jy2)
+            f2 = ob.predict_field_on_x2(ob.fd.my2, iz, it, jy1, jy2)
+            f1.tofile(fh_bin)
+            f2.tofile(fh_bin)
+            if it % 1000 == 0:
+                sys.stderr.write('# Generated it=%d\n' % it)

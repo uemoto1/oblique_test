@@ -26,7 +26,8 @@ input_vars = [
     ['logical', "out_ac_out", '', '.true.', 1],
     ['integer', "ac_out_step", '', '1000', 1],
     ['real(8)', "angle", '', '0', 1],
-    ['logical', "inp_bc", '', '.true.', 1],
+    ['logical', "inp_ac_init_bin", '', '.false.', 1],
+    ['logical', "inp_bc_bin", '', '.false.', 1],
 ]
 
 
