@@ -57,6 +57,7 @@ class ObliqueData:
         # Export .info file:
         file_info = os.path.join(directory, '%s.info' % title)
         with open(file_info, 'w') as fh_info:
+            sys.stderr.write('# Export file=%s\n' % fh_info.name)
             fh_info.write('%d %d %e' % (self.fd.mx1, self.fd.mx2, self.fd.dx))
             fh_info.write('%d %d %e' % (1, 2, 0.0))
             fh_info.write('%d %d %e' % (1, 1, 0.0))
@@ -65,14 +66,14 @@ class ObliqueData:
         file_bin = os.path.join(directory, '%s.bin' % title)
         with open(file_bin, 'w') as fh_bin:
             iz = int((self.fd.mz1 + self.fd.mz2) / 2)
-            sys.stderr.write('# Export to file=%s\n' % fh_bin.name)
+            sys.stderr.write('# Export file=%s\n' % fh_bin.name)
             for it in range(1, self.fd.mt2 + 1 + 1):
                 f1 = self.predict_field_on_x2(self.fd.my1, iz, it, jy1, jy2)
                 f2 = self.predict_field_on_x2(self.fd.my2, iz, it, jy1, jy2)
                 f1.tofile(fh_bin)
                 f2.tofile(fh_bin)
                 if it % 1000 == 0:
-                    sys.stderr.write('# Exported it=%d\n' % it)
+                    sys.stderr.write('# Generated it=%d\n' % it)
 
     def __enter__(self):
         return self
